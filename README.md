@@ -85,7 +85,7 @@ See the [list of releases](https://github.com/pamoroso/suite8080/releases) for n
 ## Author
 
 [Paolo Amoroso](https://www.paoloamoroso.com/) developed Suite8080. Email: `info@paoloamoroso.com`
-
+(This is the lbrown version)
 
 ## Contributing
 
