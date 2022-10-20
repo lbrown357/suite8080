@@ -27,6 +27,8 @@ comment = ''
 # Symbol table: {'label1': <address1>, 'label2': <address2>, ...}
 symbol_table = {}
 
+ADDRESSES=[]
+STRG=0
 
 # Immediate operand type, 8-bit or 16-bit. An enum would be overkill and verbose.
 IMMEDIATE8=8
@@ -416,21 +418,35 @@ def pass_action(instruction_size, output_byte, should_add_label=True):
         output_byte (bytes): Opcode, ``b''`` if no output should be generated.
         should_add_label (bool): True if the label, when present, should be added
     """
-    global address, output
+    global address, output, STRG, ADDRESSES
 
     if source_pass == 1:
         # Add new symbol if we have a label, unless should_add_label tells not to
         # in order to prevent duplicate label errors with multiargument db.
+        if address != STRG:
+            ADDRESSES = ADDRESSES[:-1]
         if label and should_add_label:
             add_label()
             # Increment address counter by the size of the instruction.
+        if not address in ADDRESSES:
+            ADDRESSES.append(address)
+        STRG = address + instruction_size
         address += instruction_size
+        print(instruction_size)
+        print(ADDRESSES)
     else:
         # Pass 2. Output the byte representing the opcode. For instructions with
         # additional arguments or data we'll output that in a separate function.
         if output_byte != b'':
             output += output_byte
-
+            print(len(output))
+            if not len(output)-1 in ADDRESSES:
+                print(f'Outlier: {output[-1]}')
+                output = output[:-1]
+                output += b'\x00'
+                while not len(output) in ADDRESSES:
+                    output += b'\x00'
+                output += output_byte
 
 def add_label():
     """Add a label to the symbol table."""
@@ -521,7 +537,7 @@ def dad():
 
 
 # We add a special case here rather than changing register_offset16() for just
-# 2 instructions, stax and ldax.
+# 2 in/structions, stax and ldax.
 # ldax: 0x0a + 16-bit register offset
 def ldax():
     check_operands(operand1 != '' and operand2 == '')
@@ -1161,8 +1177,7 @@ def name():
 
 
 def org():
-    global address
-
+    global address, output
     check_operands(operand1 != '' and (label == operand2 == ''))
     if operand1[0].isdigit():
         if source_pass == 1:
@@ -1335,6 +1350,7 @@ def main():
         symfile = Path(infile.stem + '.sym')
 
     assemble(lines)
+
     bytes_written = write_binary_file(outfile, output)
     if args.symtab:
         symbol_count = write_symbol_table(symbol_table, symfile)
