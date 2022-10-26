@@ -2,10 +2,13 @@
 
 from unittest import mock
 
+import sys
+
 import pytest
 
-from suite8080 import asm80
+sys.path.insert(0, '..')
 
+from suite8080 import asm80
 
 @pytest.mark.parametrize('source_line, expected', [
     # Label, mnemonic, operand1, operand2, comment
@@ -18,6 +21,8 @@ from suite8080 import asm80
     ('\t  \t  ', ('', '', '', '', '')),
     # Comment only
     ('  ; Comment only', ('', '', '', '', 'Comment only')),
+    # Multi-Semicolon Comment
+    ('  ;;; Comment only', ('', '', '', '', ';; Comment only')),
     # Label only
     ('label:', ('label', '', '', '', '')),
     # Only mnemonic
