@@ -89,7 +89,7 @@ def parse(line):
     # _l: left part of the string split by rpartition
     # _sep: separator of the string split by rpartition
     # _r: left part of the string split by rpartition
-    comment_l, comment_sep, comment_r = preprocess.rpartition(';')
+    comment_l, comment_sep, comment_r = preprocess.partition(';')
     if comment_sep:
         comment = comment_r.strip()
     else:
@@ -97,7 +97,7 @@ def parse(line):
         # rpartition returns are empty strings. So use the 3rd element with
         # the argument string as the remainder to parse. Also strip trailing
         # whitespace as it may interfere with the whitespace we search for later.
-        comment_l = comment_r.rstrip()
+        comment_r = comment_l.rstrip()
 
     # db directive?
     db_label, directive, arguments = parse_db(comment_l)
