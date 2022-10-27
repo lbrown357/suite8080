@@ -1304,7 +1304,7 @@ def get_number(input):
     """Return value of hex or decimal numeric input string."""
     if input.endswith(('h', 'H')):
         base = 16
-    elif input.endswith(('q', 'Q')):
+    elif input.endswith(('q', 'Q','o','O')):
         base = 8
     elif input.endswith(('b', 'B')):
         base = 2
