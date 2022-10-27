@@ -1,4 +1,3 @@
-	NEWPAGE 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; NAME:    stdlib.inc
@@ -18,7 +17,7 @@
 
 ; ASCII characters
 
-CR:	EQU	0Dh	; ASCII CR  (Carriage Return, a.k.a. Ctrl-M)
+CR:	EQU	16o	; ASCII CR  (Carriage Return, a.k.a. Ctrl-M)
 LF:	EQU	0Ah	; ASCII LF  (Line Feed        a.k.a. Ctrl-J)
 ESC:	EQU	1Bh	; ASCII ESC (Escape,          a.k.a. Ctrl-[)
 NUL:	EQU	00h	; ASCII NUL (Null)
@@ -74,7 +73,7 @@ WAITO:	IN	SIO1S	; Check serial I/O status bit 1 (XMIT status)
 ;	string is the address of a null-terminated ASCII string
 ;
 
-WRITE:	LDAX	B	; Fetch byte
+WRITE:	LDAX	b	; Fetch byte
 	CPI	NUL	; If byte is ASCII NUL...
 	RZ		; ...return. Else...
 	CALL	PUTC	; ...output byte
@@ -241,10 +240,10 @@ DV1:	POP	H
 INT:	LXI	H,0000h	; Initialize subtotal
 	MVI	D,00h
 
-CHAR:	LDAX	B	; Fetch char and load into accumulator
+CHAR:	LDAX	b	; Fetch char and load into accumulator
 	SUI	39h	; If ASCII value > "9" then...
 	RP		; ...not a digit. Done.
-	LDAX	B	; Refetch char and load into accumulator
+	LDAX	b	; Refetch char and load into accumulator
 	SUI	30h	; If ASCII value < "0"...
 	RM		; ...not a digit. Done.
 

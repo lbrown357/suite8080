@@ -432,16 +432,12 @@ def pass_action(instruction_size, output_byte, should_add_label=True):
             ADDRESSES.append(address)
         STRG = address + instruction_size
         address += instruction_size
-        print(instruction_size)
-        print(ADDRESSES)
     else:
         # Pass 2. Output the byte representing the opcode. For instructions with
         # additional arguments or data we'll output that in a separate function.
         if output_byte != b'':
             output += output_byte
-            print(len(output))
             if not len(output)-1 in ADDRESSES:
-                print(f'Outlier: {output[-1]}')
                 output = output[:-1]
                 output += b'\x00'
                 while not len(output) in ADDRESSES:
