@@ -17,19 +17,19 @@
 
 ; ASCII characters
 
-CR:	EQU	16o	; ASCII CR  (Carriage Return, a.k.a. Ctrl-M)
-LF:	EQU	0Ah	; ASCII LF  (Line Feed        a.k.a. Ctrl-J)
-ESC:	EQU	1Bh	; ASCII ESC (Escape,          a.k.a. Ctrl-[)
-NUL:	EQU	00h	; ASCII NUL (Null)
+CR	EQU	16o	; ASCII CR  (Carriage Return, a.k.a. Ctrl-M)
+LF	EQU	0Ah	; ASCII LF  (Line Feed        a.k.a. Ctrl-J)
+ESC	EQU	1Bh	; ASCII ESC (Escape,          a.k.a. Ctrl-[)
+NUL	EQU	00h	; ASCII NUL (Null)
 
 ; I/O
 
-SIO1S:	EQU	10h	; Serial I/O communications port 1 STATUS
-SIO1D:	EQU	11h	; Serial I/O communications port 1 DATA
+SIO1S	EQU	10h	; Serial I/O communications port 1 STATUS
+SIO1D	EQU	11h	; Serial I/O communications port 1 DATA
 
-MRST:	EQU	03h	; UART Master Reset
-RCVD:	EQU	01h	; Character received
-SENT:	EQU	002h	; Data sent. Output complete
+MRST	EQU	03h	; UART Master Reset
+RCVD	EQU	01h	; Character received
+SENT	EQU	002h	; Data sent. Output complete
 
 ; Code segment
 
