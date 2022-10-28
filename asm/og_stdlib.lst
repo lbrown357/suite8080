@@ -1,0 +1,349 @@
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 1 - 10/28/2022 12:35:22 PM
+
+
+       1/       0 :                     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       2/       0 :                     ;
+       3/       0 :                     ; NAME:    stdlib.inc
+       4/       0 :                     ; EDITOR:  Kevin Cole ("The Ubuntourist") <kevin.cole@novawebdevelopment.org>
+       5/       0 :                     ; LASTMOD: 2020.11.03 (kjc)
+       6/       0 :                     ;
+       7/       0 :                     ; DESCRIPTION: 
+       8/       0 :                     ;
+       9/       0 :                     ;     A rudimentary "include" for standard input / output, math,
+      10/       0 :                     ;     and conversion functions
+      11/       0 :                     ;
+      12/       0 :                     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      13/       0 :                     
+      14/       0 :                     ;;;;;;;;;;;;;
+      15/       0 :                     ; Constants ;
+      16/       0 :                     ;;;;;;;;;;;;;
+      17/       0 :                     
+      18/       0 :                     ; ASCII characters
+      19/       0 :                     
+      20/       0 : =16O                 CR:	EQU	16o	; ASCII CR  (Carriage Return, a.k.a. Ctrl-M)
+      21/       0 : =12O                 LF:	EQU	0Ah	; ASCII LF  (Line Feed        a.k.a. Ctrl-J)
+      22/       0 : =33O                 ESC:	EQU	1Bh	; ASCII ESC (Escape,          a.k.a. Ctrl-[)
+      23/       0 : =0O                  NUL:	EQU	00h	; ASCII NUL (Null)
+      24/       0 :                     
+      25/       0 :                     ; I/O
+      26/       0 :                     
+      27/       0 : =20O                 SIO1S:	EQU	10h	; Serial I/O communications port 1 STATUS
+      28/       0 : =21O                 SIO1D:	EQU	11h	; Serial I/O communications port 1 DATA
+      29/       0 :                     
+      30/       0 : =3O                  MRST:	EQU	03h	; UART Master Reset
+      31/       0 : =1O                  RCVD:	EQU	01h	; Character received
+      32/       0 : =2O                  SENT:	EQU	002h	; Data sent. Output complete
+      33/       0 :                     
+      34/       0 :                     ; Code segment
+      35/       0 :                     
+      36/   10000 :                     	ORG	1000h	; Load at memory location 1000 (hex)
+      37/   10000 :                     
+      38/   10000 :                     ; Reset serial input / output
+      39/   10000 :                     ;
+      40/   10000 : 076 003             RSTIO:	MVI	A,MRST
+      41/   10002 : 323 020             	OUT	SIO1S	; Reset the UART
+      42/   10004 : 076 025             	MVI	A,15h	; Settings: No RI, No XI, RTS Low, 8N1, /16
+      43/   10006 : 323 020             	OUT	SIO1S	; Configure the UART with above settings
+      44/   10010 : 311                 	RET		; Return
+      45/   10011 :                     
+      46/   10011 :                     ; Put a character on to the serial I/O bus (stdout)
+      47/   10011 :                     ;
+      48/   10011 :                     ; Calling sequence:
+      49/   10011 :                     ;
+      50/   10011 :                     ;	LDAX	register
+      51/   10011 :                     ;	CALL	PUTC
+      52/   10011 :                     ;
+      53/   10011 :                     ; where:
+      54/   10011 :                     ;	register contains the ASCII value to be sent
+      55/   10011 :                     ;
+      56/   10011 :                     
+      57/   10011 : 365                 PUTC:	PUSH	PSW	; Preserve Program Status Word
+      58/   10012 : 333 020             WAITO:	IN	SIO1S	; Check serial I/O status bit 1 (XMIT status)
+      59/   10014 : 346 002             	ANI	SENT	; If data not sent (i.e. XMIT not finished)...
+      60/   10016 : 312 012 020         	JZ	WAITO	; ...spin wheels: continue checking status. Else...
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 2 - 10/28/2022 12:35:22 PM
+
+
+      61/   10021 : 361                 	POP	PSW	; ...restore Program Status Word
+      62/   10022 : 323 021             	OUT	SIO1D	; ...output byte
+      63/   10024 : 311                 	RET		; ...return
+      64/   10025 :                     
+      65/   10025 :                     ; Write a null-terminated string out to the serial port (stdout)
+      66/   10025 :                     ;
+      67/   10025 :                     ; Calling sequence:
+      68/   10025 :                     ;
+      69/   10025 :                     ;	LXI	B,string
+      70/   10025 :                     ;	CALL	WRITE
+      71/   10025 :                     ;
+      72/   10025 :                     ; where:
+      73/   10025 :                     ;	string is the address of a null-terminated ASCII string
+      74/   10025 :                     ;
+      75/   10025 :                     
+      76/   10025 : 012                 WRITE:	LDAX	b	; Fetch byte
+      77/   10026 : 376 000             	CPI	NUL	; If byte is ASCII NUL...
+      78/   10030 : 310                 	RZ		; ...return. Else...
+      79/   10031 : 315 011 020         	CALL	PUTC	; ...output byte
+      80/   10034 : 003                 	INX	B	; ...point to next byte
+      81/   10035 : 303 025 020         	JMP	WRITE	; ...lather, rinse, repeat: Fetch next byte.
+      82/   10040 :                     
+      83/   10040 :                     ; Get a character off of the serial I/O bus (stdin)
+      84/   10040 :                     ;
+      85/   10040 : 365                 GETC:	PUSH	PSW	; Preserve Program Status Word
+      86/   10041 : 333 020             WAITI:	IN	SIO1S	; Check serial I/O status bit
+      87/   10043 : 346 001             	ANI	RCVD	; If no data received...
+      88/   10045 : 312 041 020         	JZ	WAITI	; ...spin wheels: continue checking status. Else...
+      89/   10050 : 361                 	POP	PSW	; ...restore Program Status Word
+      90/   10051 : 333 021             	IN	SIO1D	; ...read the character
+      91/   10053 : 323 021             	OUT	SIO1D	; ...echo it
+      92/   10055 : 311                 	RET		; ...return
+      93/   10056 :                     
+      94/   10056 :                     ; Read one line (CR- or LF-terminated string) from the serial port (stdin)
+      95/   10056 :                     ;
+      96/   10056 :                     ; Calling sequence:
+      97/   10056 :                     ;
+      98/   10056 :                     ;	LXI	B,buffer
+      99/   10056 :                     ;	CALL	READ
+     100/   10056 :                     ;
+     101/   10056 :                     ; where:
+     102/   10056 :                     ;	buffer is the address of a byte array for storing the string
+     103/   10056 :                     ;
+     104/   10056 :                     
+     105/   10056 : 315 040 020         READ:	CALL	GETC	; Fetch byte
+     106/   10061 : 376 016             	CPI	CR	; If byte is an ASCII CR (Carriage Return)...
+     107/   10063 : 312 110 020         	JZ	CRLF	; ...add LF and return. Else...
+     108/   10066 : 376 012             	CPI	LF	; ...if byte is an ASCII LF (Line Feed)...
+     109/   10070 : 312 100 020         	JZ	LFCR	; ...add CR and return. Else...
+     110/   10073 : 002                 	STAX	B	; ...store byte in buffer
+     111/   10074 : 003                 	INX	B	; ...point to next empty byte
+     112/   10075 : 303 056 020         	JMP	READ	; ...lather, rinse, repeat: Fetch next byte.
+     113/   10100 : 076 016             LFCR:	MVI	A,CR
+     114/   10102 : 315 011 020         	CALL	PUTC	; Print a CR
+     115/   10105 : 303 115 020         	JMP	TERM	; Terminate the input string
+     116/   10110 : 076 012             CRLF:	MVI	A,LF
+     117/   10112 : 315 011 020         	CALL	PUTC	; Print a LF
+     118/   10115 : 076 000             TERM:	MVI	A,NUL	; Null terminator
+     119/   10117 : 002                 	STAX	B	; Terminate the input string
+     120/   10120 : 311                 	RET		; Return
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 3 - 10/28/2022 12:35:22 PM
+
+
+     121/   10121 :                     
+     122/   10121 :                     ; Multiply multiplicand by multiplier
+     123/   10121 :                     ;
+     124/   10121 :                     ; Calling sequence:
+     125/   10121 :                     ;
+     126/   10121 :                     ;	LXI	C,multiplier
+     127/   10121 :                     ;	LXI	D,multiplicand
+     128/   10121 :                     ;	CALL	MULTI
+     129/   10121 :                     ;
+     130/   10121 :                     ; where:
+     131/   10121 :                     ;	multiplier   is one of the two numbers to be multiplied
+     132/   10121 :                     ;	multiplicand is the other number to be multiplied
+     133/   10121 :                     ;
+     134/   10121 :                     ; returns:
+     135/   10121 :                     ;	product in register pair BC
+     136/   10121 :                     
+     137/   10121 : 365                 MULTI:	PUSH	PSW
+     138/   10122 : 006 000             	MVI	B,0	; Initialize most significant byte of result
+     139/   10124 : 036 011             	MVI	E,9	; Bit counter
+     140/   10126 : 171                 MULT0:	MOV	A,C	; Rotate least significant bit of...
+     141/   10127 : 037                 	RAR		; ...multiplier to carry and shift...
+     142/   10130 : 117                 	MOV	C,A	; ...low-order byte of result
+     143/   10131 : 035                 	DCR	E	; Countdown to zero (decrement bit counter)
+     144/   10132 : 312 147 020         	JZ	MULT2	; If zeroed, we're done
+     145/   10135 : 170                 	MOV	A,B
+     146/   10136 : 322 142 020         	JNC	MULT1	; If carry bit = 1...
+     147/   10141 : 202                 	ADD	D	; ...add multiplicand to high-order byte
+     148/   10142 : 037                 MULT1:	RAR		; Else... shift high-order byte of result
+     149/   10143 : 107                 	MOV	B,A
+     150/   10144 : 303 126 020         	JMP	MULT0	; Lather, rinse, repeat
+     151/   10147 : 361                 MULT2:	POP	PSW
+     152/   10150 : 311                 	RET		; Return
+     153/   10151 :                     
+     154/   10151 :                     ; Divide dividend by divisor
+     155/   10151 :                     ;
+     156/   10151 :                     ; Calling sequence:
+     157/   10151 :                     ;
+     158/   10151 :                     ;	MVI	B,00h
+     159/   10151 :                     ;	MVI	C,dividend
+     160/   10151 :                     ;	MVI	D,00h
+     161/   10151 :                     ;	MVI	E,divisor
+     162/   10151 :                     
+     163/   10151 :                     ;	CALL	DIVI
+     164/   10151 :                     ;
+     165/   10151 :                     ; where:
+     166/   10151 :                     ;	dividend is the number to be divided
+     167/   10151 :                     ;	divisor  is the number to divide by
+     168/   10151 :                     ;
+     169/   10151 :                     ; returns:
+     170/   10151 :                     ;	quotient  in register pair BC
+     171/   10151 :                     ;	remainder in register pair DE
+     172/   10151 :                     
+     173/   10151 : 365                 DIVI:	PUSH	PSW
+     174/   10152 : 172                 	MOV	A,D	; Negate the divisor
+     175/   10153 : 057                 	CMA		;    "    "     "
+     176/   10154 : 127                 	MOV	D,A	;    "    "     "
+     177/   10155 : 173                 	MOV	A,E	;    "    "     "
+     178/   10156 : 057                 	CMA		;    "    "     "
+     179/   10157 : 137                 	MOV	E,A	;    "    "     "
+     180/   10160 : 023                 	INX	D	; For two's complement
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 4 - 10/28/2022 12:35:22 PM
+
+
+     181/   10161 : 041 000 000         	LXI	H,00h	; Initial value for remainder
+     182/   10164 : 076 021             	MVI	A,11h	; Initialize loop counter
+     183/   10166 : 345                 DV0:	PUSH	H	; Save remainder
+     184/   10167 : 031                 	DAD	D	; Subtract divisor (add negative)
+     185/   10170 : 322 174 020         	JNC	DV1	; Underflow. Restore register pair HL
+     186/   10173 : 343                 	XTHL
+     187/   10174 : 341                 DV1:	POP	H
+     188/   10175 : 365                 	PUSH	PSW	; Save loop counter
+     189/   10176 :                     
+     190/   10176 :                     	; 4 register left shift
+     191/   10176 :                     	; Carry->C->B->L->H
+     192/   10176 :                     
+     193/   10176 : 171                 	MOV	A,C
+     194/   10177 : 027                 	RAL
+     195/   10200 : 117                 	MOV	C,A
+     196/   10201 :                     
+     197/   10201 : 170                 	MOV	A,B
+     198/   10202 : 027                 	RAL
+     199/   10203 : 107                 	MOV	B,A
+     200/   10204 :                     
+     201/   10204 : 175                 	MOV	A,L
+     202/   10205 : 027                 	RAL
+     203/   10206 : 157                 	MOV	L,A
+     204/   10207 :                     
+     205/   10207 : 174                 	MOV	A,H
+     206/   10210 : 027                 	RAL
+     207/   10211 : 147                 	MOV	H,A
+     208/   10212 :                     
+     209/   10212 : 361                 	POP	PSW	; Restore loop counter (A)
+     210/   10213 : 075                 	DCR	A	; Decrement loop counter
+     211/   10214 : 302 166 020         	JNZ	DV0	; Lather, rinse, repeat
+     212/   10217 :                     
+     213/   10217 :                     	; Post-divide clean-up:
+     214/   10217 :                     	; Shift remainder right and return in DE
+     215/   10217 :                     
+     216/   10217 : 267                 	ORA	A
+     217/   10220 :                     
+     218/   10220 : 174                 	MOV	A,H
+     219/   10221 : 037                 	RAR
+     220/   10222 : 127                 	MOV	D,A	; Store shifted H in D
+     221/   10223 :                     
+     222/   10223 : 175                 	MOV	A,L
+     223/   10224 : 037                 	RAR
+     224/   10225 : 137                 	MOV	E,A	; Store shifted L in E
+     225/   10226 :                     
+     226/   10226 : 361                 	POP	PSW
+     227/   10227 : 311                 	RET
+     228/   10230 :                     
+     229/   10230 :                     ; Convert a NULL-terminated string to an integer
+     230/   10230 :                     ;
+     231/   10230 :                     ; Calling sequence:
+     232/   10230 :                     ;
+     233/   10230 :                     ;	LXI	B,string
+     234/   10230 :                     ;	CALL	INT
+     235/   10230 :                     ;
+     236/   10230 :                     ; where:
+     237/   10230 :                     ;	string is the address of a string of ASCII digits
+     238/   10230 :                     ;
+     239/   10230 :                     
+     240/   10230 : 041 000 000         INT:	LXI	H,0000h	; Initialize subtotal
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 5 - 10/28/2022 12:35:22 PM
+
+
+     241/   10233 : 026 000             	MVI	D,00h
+     242/   10235 :                     
+     243/   10235 : 012                 CHAR:	LDAX	b	; Fetch char and load into accumulator
+     244/   10236 : 326 071             	SUI	39h	; If ASCII value > "9" then...
+     245/   10240 : 360                 	RP		; ...not a digit. Done.
+     246/   10241 : 012                 	LDAX	b	; Refetch char and load into accumulator
+     247/   10242 : 326 060             	SUI	30h	; If ASCII value < "0"...
+     248/   10244 : 370                 	RM		; ...not a digit. Done.
+     249/   10245 :                     
+     250/   10245 : 137                 	MOV	E,A	; Save "ones' position" integer digit in E
+     251/   10246 : 076 011             	MVI	A,09h	; counter for decimal magnitude shift
+     252/   10250 : 305                 	PUSH	B
+     253/   10251 : 104                 	MOV	B,H
+     254/   10252 : 115                 	MOV	C,L
+     255/   10253 : 011                 SHFTL:	DAD	B	; Add subtotal to subtotal
+     256/   10254 : 075                 	DCR	A	; If loop counter > 0
+     257/   10255 : 302 253 020         	JNZ	SHFTL	; ...continue repetitive additon
+     258/   10260 : 301                 	POP	B
+     259/   10261 : 031                 	DAD	D	; Add in "ones' position" digit
+     260/   10262 : 003                 	INX	B	; Point to next char
+     261/   10263 : 303 235 020         	JMP	CHAR	; Lather, rinse, repeat
+     262/   10266 :                     
+     263/   10266 :                     ; Convert an integer to a NULL-terminated string
+     264/   10266 :                     ;
+     265/   10266 :                     ; Calling sequence:
+     266/   10266 :                     ;
+     267/   10266 :                     ;       LHLD    integer    ; 16-bit integer        into LH
+     268/   10266 :                     ;	LXI	B,buffer   ; 16-bit memory address into BC
+     269/   10266 :                     ;	CALL	STR
+     270/   10266 :                     ;
+     271/   10266 :                     ; where:
+     272/   10266 :                     ;       integer is the address of the integer to be converted to ASCII
+     273/   10266 :                     ;	buffer  is the address of a byte array for storing ASCII representation
+     274/   10266 :                     ;
+     275/   10266 :                     
+     276/   10266 : 305                 STR:	PUSH	B
+     277/   10267 : 345                 	PUSH	H	; Save initial value in HL for later use
+     278/   10270 :                     
+     279/   10270 :                     ;	STAX	B	; ...store byte in buffer
+     280/   10270 :                     ;	INX	B	; ...point to next empty byte
+     281/   10270 : 341                 	POP	H
+     282/   10271 : 301                 	POP	B
+     283/   10272 : 311                 	RET		; Return
+     284/   10273 :                     
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 6 - 10/28/2022 12:35:22 PM
+
+
+  Symbol Table (* = unused):
+  --------------------------
+
+*ARCHITECTURE :                                      "x86_64-unknown-linux" - |
+*CASESENSITIVE :                  0 - |  CHAR :                       10235 C |
+*COMPMODE :                       0 - | *CONSTPI :        3.141592653589793 - |
+ CR :                            16 - |  CRLF :                       10110 C |
+*DATE :                "10/28/2022" - | *DIVI :                       10151 C |
+ DV0 :                        10166 C |  DV1 :                        10174 C |
+*ESC :                           33 - | *FALSE :                          0 - |
+ GETC :                       10040 C | *HAS64 :                          1 - |
+*INT :                        10230 C |  LF :                            12 - |
+ LFCR :                       10100 C | *LISTON :                         1 - |
+*MACEXP :                         7 - | *MOMCPU :                    100200 - |
+*MOMCPUNAME :                "8080" - |  MRST :                           3 - |
+ MULT0 :                      10126 C |  MULT1 :                      10142 C |
+ MULT2 :                      10147 C | *MULTI :                      10121 C |
+*NESTMAX :                      400 - |  NUL :                            0 - |
+ PUTC :                       10011 C |  RCVD :                           1 - |
+ READ :                       10056 C | *RELAXED :                        0 - |
+*RSTIO :                      10000 C |  SENT :                           2 - |
+ SHFTL :                      10253 C |  SIO1D :                         21 - |
+ SIO1S :                         20 - | *STR :                        10266 C |
+ TERM :                       10115 C | *TIME :               "12:35:22 PM" - |
+*TRUE :                           1 - | *VERSION :                    12057 - |
+ WAITI :                      10041 C |  WAITO :                      10012 C |
+ WRITE :                      10025 C | *Z80SYNTAX :                      0 - |
+
+     47 symbols
+     23 unused symbols
+
+ AS V1.42 Beta [Bld 230] - Source File og_stdlib.asm - Page 7 - 10/28/2022 12:35:22 PM
+
+
+  Code Pages:
+  ----------
+
+STANDARD (0 changed characters)
+
+1 code page
+
+0.00 seconds assembly time
+
+    284 lines source file
+      2 passes
+      0 errors
+      0 warnings
