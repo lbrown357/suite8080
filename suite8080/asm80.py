@@ -1326,7 +1326,12 @@ def main():
                         help='save symbol table')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='increase output verbosity')
+    parser.add_argument('-H', '--hex', action='store_true',
+                        help='output hex file')
     args = parser.parse_args()
+
+    if args.hex:
+        print('hex file')
 
     if args.filename == '-':
         lines = sys.stdin.readlines()
