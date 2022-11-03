@@ -1329,9 +1329,10 @@ def main():
     parser.add_argument('-H', '--hex', action='store_true',
                         help='output hex file')
     args = parser.parse_args()
+    filetype='.com'
 
     if args.hex:
-        print('hex file')
+        filetype='.hex'
 
     if args.filename == '-':
         lines = sys.stdin.readlines()
@@ -1341,13 +1342,13 @@ def main():
             lines = file.readlines()
 
     if args.filename == '-':
-        outfile = args.outfile if args.outfile else OUTFILE + '.com'
+        outfile = args.outfile if args.outfile else OUTFILE + filetype
         symfile = Path(args.outfile).stem + '.sym' if args.outfile else OUTFILE + '.sym'
     elif args.outfile:
         outfile = Path(args.outfile)
         symfile = Path(args.outfile).stem + '.sym'
     else:
-        outfile = Path(infile.stem + '.com')
+        outfile = Path(infile.stem + filetype)
         symfile = Path(infile.stem + '.sym')
 
     assemble(lines)
