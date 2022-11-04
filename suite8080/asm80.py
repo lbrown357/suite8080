@@ -16,6 +16,7 @@ source_pass = 1
 
 # Assembled machine code.
 output = b''
+extra_hex = ''
 
 # Tokens
 label = ''
