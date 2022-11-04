@@ -4,6 +4,22 @@ import argparse
 from pathlib import Path
 import sys
 
+HEXNUMS={'0':0,
+         '1':1,
+         '2':2,
+         '3':3,
+         '4':4,
+         '5':5,
+         '6':6,
+         '7':7,
+         '8':8,
+         '9':9,
+         'A':10,
+         'B':11,
+         'C':12,
+         'D':13,
+         'E':14,
+         'F':15}
 
 # Current source line number.
 lineno = 0
@@ -27,6 +43,7 @@ comment = ''
 
 # Symbol table: {'label1': <address1>, 'label2': <address2>, ...}
 symbol_table = {}
+hex_address = 0
 
 ADDRESSES=[]
 STRG=0
@@ -38,6 +55,7 @@ IMMEDIATE16=16
 
 # Default output file name
 OUTFILE = 'program'
+filetype = '.com'
 
 
 def assemble(lines):
@@ -419,7 +437,7 @@ def pass_action(instruction_size, output_byte, should_add_label=True):
         output_byte (bytes): Opcode, ``b''`` if no output should be generated.
         should_add_label (bool): True if the label, when present, should be added
     """
-    global address, output, STRG, ADDRESSES
+    global address, output, STRG, ADDRESSES, filetype, extra_hex, hex_address
 
     if source_pass == 1:
         # Add new symbol if we have a label, unless should_add_label tells not to
@@ -440,10 +458,16 @@ def pass_action(instruction_size, output_byte, should_add_label=True):
             output += output_byte
             if not len(output)-1 in ADDRESSES:
                 output = output[:-1]
-                output += b'\x00'
-                while not len(output) in ADDRESSES:
+                hex_address = len(output)
+                while not hex_address in ADDRESSES:
+                    hex_address += 1
+                if filetype == '.com':
                     output += b'\x00'
-                output += output_byte
+                    while not len(output) in ADDRESSES:
+                        output += b'\x00'
+                    output += output_byte
+                elif filetype == '.hex':
+                    extra_hex += str(output_byte.hex())
 
 def add_label():
     """Add a label to the symbol table."""
@@ -1315,9 +1339,39 @@ def get_number(input):
 
     return number
 
+def checksum(num):
+    hexnums=[]
+    total=0
+    for i in range(0,len(num)//2):
+        hexnums.append(num[i*2:i*2+2])
+    for i in hexnums:
+        total+=HEXNUMS[i[0]]*16+HEXNUMS[i[1]]
+    total=256-total+256*int(total/256)
+    total=str(hex(total))[-2:].upper()
+    total = (2-len(total))*'0'+total
+    return total
+
+def hexassemble(num, location='0000'):
+    if str(type(num))=="<class 'bytes'>":
+        num = str(output.hex())
+    num = str(hex(len(num)//2))[2:]+location+'00'+num
+    if len(num) < 38:
+        num = '0'+num
+        if len(num) == 5:
+            num = '0'+num
+    num = num.upper()
+    num = ':'+num+checksum(num)
+    return num
+
+def addzeros(num,newlength):
+    if newlength > len(num):
+        return '0'*(newlength-len(num))+num
+    else:
+        return num
 
 def main():
     """Parse the command line and pass the input file to the assembler."""
+    global filetype, extra_hex, output, hex_address
     asm80_description = f'Intel 8080 assembler / Suite8080'
     parser = argparse.ArgumentParser(description=asm80_description)
     parser.add_argument('filename', default='-', help="input file, stdin if '-'")
@@ -1330,7 +1384,6 @@ def main():
     parser.add_argument('-H', '--hex', action='store_true',
                         help='output hex file')
     args = parser.parse_args()
-    filetype='.com'
 
     if args.hex:
         filetype='.hex'
@@ -1353,7 +1406,14 @@ def main():
         symfile = Path(infile.stem + '.sym')
 
     assemble(lines)
+    if filetype == '.hex':
+        output = hexassemble(output)
+        if extra_hex != '':
+            hex_address = addzeros(str(hex(hex_address)[2:]).upper(),4)
+            extra_hex = hexassemble(extra_hex, hex_address)
+            output += '\n'+extra_hex
 
+            
     bytes_written = write_binary_file(outfile, output)
     if args.symtab:
         symbol_count = write_symbol_table(symbol_table, symfile)
@@ -1364,10 +1424,17 @@ def main():
             print(f'{symbol_count} symbols written')
 
 
+
+
+
 def write_binary_file(filename, binary_data):
     """Write ``binary_data`` to filename and return number of bytes written."""
-    with open(filename, 'wb') as file:
-        file.write(binary_data)
+    if filetype == '.com':
+        with open(filename, 'wb') as file:
+            file.write(binary_data)
+    elif filetype == '.hex':
+        with open(filename, 'w') as file:
+            file.write(binary_data)
     return len(binary_data)
 
 
