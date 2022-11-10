@@ -32,7 +32,7 @@ source_pass = 1
 
 # Assembled machine code.
 output = b''
-extra_hex = ''
+extra_hex = []
 
 # Tokens
 label = ''
@@ -43,7 +43,7 @@ comment = ''
 
 # Symbol table: {'label1': <address1>, 'label2': <address2>, ...}
 symbol_table = {}
-hex_address = 0
+hex_address = []
 
 ADDRESSES=[]
 STRG=0
@@ -458,16 +458,33 @@ def pass_action(instruction_size, output_byte, should_add_label=True):
             output += output_byte
             if not len(output)-1 in ADDRESSES:
                 output = output[:-1]
-                hex_address = len(output)
-                while not hex_address in ADDRESSES:
-                    hex_address += 1
+                hex_address.append(len(output))
+                while (not hex_address[-1] in ADDRESSES) or (hex_address[-1] in hex_address[:-1]):
+                    hex_address[-1] += 1
                 if filetype == '.com':
                     output += b'\x00'
                     while not len(output) in ADDRESSES:
                         output += b'\x00'
                     output += output_byte
                 elif filetype == '.hex':
-                    extra_hex += str(output_byte.hex())
+                    if len(hex_address)>len(extra_hex):
+                        extra_hex.append(str(output_byte.hex()))
+                    else:
+                        extra_hex[-1] += str(output_byte.hex())
+
+
+def hex_compress(hex_pos, hex_outputs):
+    new_hex_pos=[]
+    new_hex_vals=[]
+    for i in hex_pos:
+        if not (i-1) in hex_pos:
+            new_hex_pos.append(i)
+            new_hex_vals.append(hex_outputs[hex_pos.index(i)])
+        else:
+            new_hex_vals[-1] += hex_outputs[hex_pos.index(i)]
+    return (new_hex_pos, new_hex_vals)
+            
+
 
 def add_label():
     """Add a label to the symbol table."""
@@ -1408,10 +1425,12 @@ def main():
     assemble(lines)
     if filetype == '.hex':
         output = hexassemble(output)
-        if extra_hex != '':
-            hex_address = addzeros(str(hex(hex_address)[2:]).upper(),4)
-            extra_hex = hexassemble(extra_hex, hex_address)
-            output += '\n'+extra_hex
+        if extra_hex != []:
+            hex_address, extra_hex = hex_compress(hex_address, extra_hex)
+            for i in range(0,len(hex_address)):
+                hex_address[i] = addzeros(str(hex(hex_address[i])[2:]).upper(),4)
+                extra_hex[i] = hexassemble(extra_hex[i], hex_address[i])
+                output += '\n'+extra_hex[i]
 
             
     bytes_written = write_binary_file(outfile, output)
