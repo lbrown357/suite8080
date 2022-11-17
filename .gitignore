@@ -136,7 +136,6 @@ poetry.lock
 pyproject.toml
 
 # Intel 8080 executable, object, or symbol table files
-**/*.com
 **/*.exe
 **/*.obj
 **/*.sym
