@@ -1416,7 +1416,7 @@ def main():
             lines = file.readlines()
     for line in range(0,len(lines)):
         if (lines[line])[:8]=='INCLUDE ':
-            with open(infile.parent / (lines[line])[8:-1], 'r') as file:
+            with open(infile.parent / lines[line].split()[1], 'r') as file:
                 lines = lines[:line]+file.readlines()+lines[line+1:]
                 break
 
