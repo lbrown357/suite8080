@@ -65,6 +65,7 @@ def assemble(lines):
     # The end Assembly directive raises StopIteration, which we catch and do
     # nothing so that instuction parsing and processing ends and execution can
     # proceed with the succeeding statements.
+
     source_pass = 1
     try:
         for lineno, line in enumerate(lines):
@@ -167,6 +168,8 @@ def parse(line):
         label = equ_l.strip()
         mnemonic = equ_sep.strip()
         operand1 = equ_r.strip()
+
+
 
 
     # Fixup for the case in which the mnemonic ends up as the first operand
@@ -1411,6 +1414,11 @@ def main():
         infile = Path(args.filename)
         with open(infile, 'r') as file:
             lines = file.readlines()
+    for line in range(0,len(lines)):
+        if (lines[line])[:8]=='INCLUDE ':
+            with open(infile.parent / (lines[line])[8:-1], 'r') as file:
+                lines = lines[:line]+file.readlines()+lines[line+1:]
+                break
 
     if args.filename == '-':
         outfile = args.outfile if args.outfile else OUTFILE + filetype
