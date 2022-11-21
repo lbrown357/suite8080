@@ -1415,11 +1415,35 @@ def main():
         with open(infile, 'r') as file:
             lines = file.readlines()
     for line in range(0,len(lines)):
-        if (lines[line])[:8]=='INCLUDE ':
-            with open(infile.parent / lines[line].split()[1], 'r') as file:
-                lines = lines[:line]+file.readlines()+lines[line+1:]
-                break
-
+        if len(lines[line].split())>0:
+            if lines[line].split()[0]=='INCLUDE':
+                with open(infile.parent / lines[line].split()[1], 'r') as file:
+                    lines = lines[:line]+file.readlines()+lines[line+1:]
+                    break
+    org_bracket = {}
+    org_order = []
+    first_org = len(lines)-1
+    last_line = False
+    for line in range(0,len(lines)):
+        if len(lines[line].split())>0:
+            if lines[line].split()[0]=='ORG':
+                first_org = min(line, first_org)
+                org_bracket[get_number(lines[line].split()[1])] = [lines[line]]
+                for i in range(line+1,len(lines)):
+                    if len(lines[i].split())>0:
+                        if lines[i].split()[0] in ['ORG', 'END']:
+                            break
+                    org_bracket[get_number(lines[line].split()[1])].append(lines[i])
+            if lines[line].split()[0] == 'END':
+                last_line = True
+    org_order = list(org_bracket.keys())
+    org_order.sort()
+    lines=lines[:first_org]
+    for i in org_order:
+        lines += org_bracket[i]
+    if last_line:
+        lines += ['END\n']
+            
     if args.filename == '-':
         outfile = args.outfile if args.outfile else OUTFILE + filetype
         symfile = Path(args.outfile).stem + '.sym' if args.outfile else OUTFILE + '.sym'
