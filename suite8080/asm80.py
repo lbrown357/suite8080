@@ -1369,6 +1369,8 @@ def checksum(num):
     total=256-total+256*int(total/256)
     total=str(hex(total))[-2:].upper()
     total = (2-len(total))*'0'+total
+    if total[0]=='X':
+        total='0'+total[1]
     return total
 
 def hexassemble(num, location='0000'):
