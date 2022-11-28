@@ -1319,7 +1319,10 @@ def immediate_operand(operand_type=IMMEDIATE8):
 
     if source_pass == 2:
         operand_size = 1 if operand_type == IMMEDIATE8  else 2
-        output += number.to_bytes(operand_size, byteorder='little')
+        if filetype=='.com' or extra_hex==[]:
+            output += number.to_bytes(operand_size, byteorder='little')
+        elif filetype=='.hex':
+            extra_hex[-1] += str(number.to_bytes(operand_size, byteorder='little').hex())
 
 
 # BUG: doesn't work with immediate addresses like ffh; labels aren't added to
@@ -1338,7 +1341,10 @@ def address16():
             report_error(f'undefined label "{operand1}"')
 
     if source_pass == 2:
-        output += number.to_bytes(2, byteorder='little')
+        if filetype=='.com' or extra_hex==[]:
+            output += number.to_bytes(2, byteorder='little')
+        elif filetype=='.hex':
+            extra_hex[-1] += str(number.to_bytes(2, byteorder='little').hex())
 
 
 def get_number(input):
